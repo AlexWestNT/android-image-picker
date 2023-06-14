@@ -16,7 +16,7 @@ import com.esafirm.imagepicker.model.Image
 /* > Ext */
 /* --------------------------------------------------- */
 
-class ImagePickerLauncher(
+open class ImagePickerLauncher(
     private val context: () -> Context,
     private val resultLauncher: ActivityResultLauncher<Intent>
 ) {
