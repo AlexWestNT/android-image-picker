@@ -9,6 +9,7 @@ import android.database.ContentObserver;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Parcelable;
 import android.provider.MediaStore;
@@ -81,6 +82,23 @@ public class ImagePickerFragment extends Fragment implements ImagePickerView {
 
     public ImagePickerFragment() {
         // Required empty public constructor.
+    }
+
+    private String[] getPermissionsToRequest() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (config.isIncludeVideo()) {
+                return new String[] {Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO};
+            }
+            else {
+                return new String[] {Manifest.permission.READ_MEDIA_IMAGES};
+            }
+        }
+        else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || Environment.isExternalStorageLegacy()) {
+            return new String[] {Manifest.permission.WRITE_EXTERNAL_STORAGE};
+        }
+        else {
+            return new String[] {Manifest.permission.READ_EXTERNAL_STORAGE};
+        }
     }
 
     public static ImagePickerFragment newInstance(@Nullable ImagePickerConfig config,
@@ -272,8 +290,11 @@ public class ImagePickerFragment extends Fragment implements ImagePickerView {
      * Check permission
      */
     private void getDataWithPermission() {
-        int rc = ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE);
-        if (rc == PackageManager.PERMISSION_GRANTED) {
+        boolean allGranted = true;
+        for (String permission : getPermissionsToRequest()) {
+            allGranted = allGranted && ActivityCompat.checkSelfPermission(getActivity(), permission) == PackageManager.PERMISSION_GRANTED;
+        }
+        if (allGranted) {
             getData();
         } else {
             requestWriteExternalPermission();
@@ -294,7 +315,7 @@ public class ImagePickerFragment extends Fragment implements ImagePickerView {
      * If permission denied and user choose 'Never Ask Again', show snackbar with an action that navigate to app settings
      */
     private void requestWriteExternalPermission() {
-        logger.w("Write External permission is not granted. Requesting permission");
+        logger.w("Write External permission or Read Media Images is not granted. Requesting permission");
 
         final String[] permissions = new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE};
 
